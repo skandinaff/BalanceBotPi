@@ -32,6 +32,7 @@ enum mState {
     INIT,
     READ_CMD,
     HELP,
+    TEST_ACC,
     EXIT
 };
 

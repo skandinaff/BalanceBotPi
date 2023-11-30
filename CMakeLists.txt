@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.25)
 project(CL VERSION 1.0 LANGUAGES C CXX)
 include(CheckSystem.cmake)
 
@@ -10,6 +10,8 @@ set(CMAKE_SYSTEM_NAME Linux)
 
 set(SOURCES
         src/main.cpp
+        src/acc.cpp
+        drivers/MMA7455.cpp
         )
 
 if (IS_ARMBIAN OR IS_RASPBIAN)

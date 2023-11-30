@@ -5,6 +5,8 @@
 #include "../include/lockfile.h"
 #include "../include/serial_port_listener.h"
 #include "../debug/include/debugUtils.h"
+#include "../drivers/MMA7455.h"
+#include "../include/acc.h"
 
 struct termios orig_termios;
 
@@ -23,7 +25,8 @@ std::unordered_map<std::string, std::pair<mState, std::string>> command_map = {
         {"idle", {IDLE, "Idle state"}},
         {"init", {INIT, "Initialize"}},
         {"exit", {EXIT, "Exit app"}},
-        {"help", {HELP, "Show this list"}}
+        {"help", {HELP, "Show this list"}},
+        {"ta",   {TEST_ACC, "Test accelerometer"}}
 };
 void validateAndHandleInput(mState state, const std::vector<std::string>& cmd_tokens) {
     try {
@@ -187,6 +190,7 @@ void state_machine(mState& state,
                 INFO("In INIT state" );
                 if(!init_done){
                     // Do the init
+                    setup_acc();
                     init_done = true;
                     break;
                 }
@@ -209,6 +213,11 @@ void state_machine(mState& state,
             case HELP: {
                 std::cout << "List of avaliable commands:\n" << get_available_commands(command_map) << std::endl;
                 state = mState::IDLE;
+                break;
+            }
+            case TEST_ACC: {
+                int i2cFile = -1;
+                loop_acc(i2cFile);
                 break;
             }
             case EXIT: {

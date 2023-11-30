@@ -8,16 +8,10 @@
  */
 /**************************************************************************/
 
-#if ARDUINO >= 100
-#include "Arduino.h"
-#else
-#include "WProgram.h"
-#endif
-
-#include <Wire.h>
-
 #include "MMA7455.h"
 
+
+static int i2cFile = -1;
 /**************************************************************************/
 /*
         Abstract away platform differences in Arduino wire library
@@ -25,11 +19,12 @@
 /**************************************************************************/
 static uint8_t i2cread(void)
 {
-    #if ARDUINO >= 100
-        return Wire.read();
-    #else
-        return Wire.receive();
-    #endif
+    uint8_t data;
+    if (read(i2cFile, &data, 1) != 1) {
+        perror("Failed to read from the i2c bus");
+        exit(1);
+    }
+    return data;
 }
 
 /**************************************************************************/
@@ -39,11 +34,10 @@ static uint8_t i2cread(void)
 /**************************************************************************/
 static void i2cwrite(uint8_t x)
 {
-    #if ARDUINO >= 100
-        Wire.write((uint8_t)x);
-    #else
-        Wire.send(x);
-    #endif
+    if (write(i2cFile, &x, 1) != 1) {
+        perror("Failed to write to the i2c bus");
+        exit(1);
+    }
 }
 
 /**************************************************************************/
@@ -53,10 +47,13 @@ static void i2cwrite(uint8_t x)
 /**************************************************************************/
 static void writeRegister(uint8_t i2cAddress, uint8_t reg, uint8_t value)
 {
-    Wire.beginTransmission(i2cAddress);
-    i2cwrite((uint8_t)reg);
-    i2cwrite((uint8_t)(value));
-    Wire.endTransmission();
+    if (ioctl(i2cFile, I2C_SLAVE, i2cAddress) < 0) {
+        perror("Failed to acquire bus access and/or talk to slave");
+        exit(1);
+    }
+
+    i2cwrite(reg);
+    i2cwrite(value);
 }
 
 /**************************************************************************/
@@ -66,11 +63,19 @@ static void writeRegister(uint8_t i2cAddress, uint8_t reg, uint8_t value)
 /**************************************************************************/
 static uint8_t readRegister(uint8_t i2cAddress, uint8_t reg)
 {
-    Wire.beginTransmission(i2cAddress);
-    i2cwrite((uint8_t)reg);
-    Wire.endTransmission();
-    Wire.requestFrom(i2cAddress, (uint8_t)1);
-    return (uint8_t)(i2cread());
+    if (ioctl(i2cFile, I2C_SLAVE, i2cAddress) < 0) {
+        perror("Failed to acquire bus access and/or talk to slave");
+        exit(1);
+    }
+
+    i2cwrite(reg);
+
+    if (read(i2cFile, &reg, 1) != 1) {
+        perror("Failed to read from the i2c bus");
+        exit(1);
+    }
+
+    return reg;
 }
 
 
@@ -92,11 +97,15 @@ void MMA7455::getAddr_MMA7455(uint8_t i2cAddress)
 /**************************************************************************/
 bool MMA7455::begin()
 {
-    Wire.begin();
-    
+    i2cFile = open(I2C_DEV, O_RDWR);
+    if (i2cFile < 0) {
+        perror("Failed to open the i2c bus");
+        exit(1);
+    }
+
     // Set up the sensor for Accelerometer
     // setUpAccelerometer();
-    
+
     return true;
 }
 
@@ -358,7 +367,7 @@ void MMA7455::setUpAccelerometer(void)
     writeRegister(mma_i2cAddress, MMA7455_REG_ACCEL_MCTL, mode_control);
     
     // Wait for the configuration to complete
-    delay(mma_conversionDelay);
+    usleep(mma_conversionDelay);
     
     // Set Up the Configuration for the Accelerometer Control Register 1
     /*
@@ -393,7 +402,7 @@ void MMA7455::setUpAccelerometer(void)
     writeRegister(mma_i2cAddress, MMA7455_REG_ACCEL_CTL1, control1);
     
     // Wait for the configuration to complete
-    delay(mma_conversionDelay);
+    usleep(mma_conversionDelay);
 }
 
 /**************************************************************************/

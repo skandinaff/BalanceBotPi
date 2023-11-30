@@ -8,13 +8,18 @@
 */
 /**************************************************************************/
 
-#if ARDUINO >= 100
-#include "Arduino.h"
-#else
-#include "WProgram.h"
-#endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstdint>
+#include <time.h>
 
-#include <Wire.h>
+#include <sys/ioctl.h>
+#include <linux/i2c-dev.h>
+
+#define I2C_DEV "/dev/i2c-1"  // Use /dev/i2c-1 for Raspberry Pi I2C interface
+
 
 /**************************************************************************
     I2C ADDRESS/BITS
