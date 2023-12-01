@@ -11,13 +11,13 @@
 #include "MMA7455.h"
 
 
-static int i2cFile = -1;
+
 /**************************************************************************/
 /*
         Abstract away platform differences in Arduino wire library
 */
 /**************************************************************************/
-static uint8_t i2cread(void)
+uint8_t MMA7455::i2cread(void)
 {
     uint8_t data;
     if (read(i2cFile, &data, 1) != 1) {
@@ -32,7 +32,7 @@ static uint8_t i2cread(void)
         Abstract away platform differences in Arduino wire library
 */
 /**************************************************************************/
-static void i2cwrite(uint8_t x)
+void MMA7455::i2cwrite(uint8_t x)
 {
     if (write(i2cFile, &x, 1) != 1) {
         perror("Failed to write to the i2c bus");
@@ -45,7 +45,7 @@ static void i2cwrite(uint8_t x)
         Writes 8-bits to the specified destination register
 */
 /**************************************************************************/
-static void writeRegister(uint8_t i2cAddress, uint8_t reg, uint8_t value)
+void MMA7455::writeRegister(uint8_t i2cAddress, uint8_t reg, uint8_t value)
 {
     if (ioctl(i2cFile, I2C_SLAVE, i2cAddress) < 0) {
         perror("Failed to acquire bus access and/or talk to slave");
@@ -61,7 +61,7 @@ static void writeRegister(uint8_t i2cAddress, uint8_t reg, uint8_t value)
         Reads 8-bits to the specified destination register
 */
 /**************************************************************************/
-static uint8_t readRegister(uint8_t i2cAddress, uint8_t reg)
+uint8_t MMA7455::readRegister(uint8_t i2cAddress, uint8_t reg)
 {
     if (ioctl(i2cFile, I2C_SLAVE, i2cAddress) < 0) {
         perror("Failed to acquire bus access and/or talk to slave");
@@ -98,6 +98,7 @@ void MMA7455::getAddr_MMA7455(uint8_t i2cAddress)
 bool MMA7455::begin()
 {
     i2cFile = open(I2C_DEV, O_RDWR);
+
     if (i2cFile < 0) {
         perror("Failed to open the i2c bus");
         exit(1);

@@ -216,8 +216,7 @@ void state_machine(mState& state,
                 break;
             }
             case TEST_ACC: {
-                int i2cFile = -1;
-                loop_acc(i2cFile);
+                loop_acc();
                 break;
             }
             case EXIT: {

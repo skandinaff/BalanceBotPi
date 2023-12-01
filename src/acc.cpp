@@ -15,33 +15,37 @@ void setup_acc() {
     // The Accelerometer's Measurement Range can be changed via the following function:
     mma.setAccelRange(ACCEL_RANGE_2G); // 2 g
 
+    
     mma.begin();
-    usleep(1000000); // 1 second delay
+
+    mma.setUpAccelerometer();
+    //usleep(1000000); // 1 second delay
 }
 
-void loop_acc(int& i2cFile) {
+void loop_acc() {
     uint8_t error;
     int8_t address;
 
     // MMA7455 Accelerometer Address
-    address = mma.mma_i2cAddress;
+    //address = mma.mma_i2cAddress;
 
     // The i2c_scanner uses the return value of
     // the Write.endTransmisstion to see if
     // a device did acknowledge to the address.
-    if (ioctl(i2cFile, I2C_SLAVE, address) < 0) {
+    
+    if (ioctl(mma.geti2cFile(), I2C_SLAVE, mma.mma_i2cAddress) < 0) {
         perror("Failed to acquire bus access and/or talk to slave");
         exit(1);
     }
 
-    error = write(i2cFile, &address, 1);
-    if (error == 0) {
+    //error = write(i2cFile, &address, 1);
+    //if (error == 0) {
         std::cout << "Getting Acceleration Data Readings from MMA7455" << std::endl;
         std::cout << std::endl;
 
         // Set up the sensor for Accelerometer
-        mma.setUpAccelerometer();
-        usleep(500000); // 500ms delay
+
+        //usleep(5000); // 500ms delay
 
         // Display the results for Acceleration
         mma.Measure_Accelerometer();
@@ -53,13 +57,16 @@ void loop_acc(int& i2cFile) {
         std::cout << std::endl;
         std::cout << "        ***************************        " << std::endl;
         std::cout << std::endl;
-        usleep(1000000); // 1 second delay
-    } else {
+        //usleep(1000000); // 1 second delay
+    /*
+    }
+     else {
         std::cout << "MMA7455 Disconnected!" << std::endl;
         std::cout << std::endl;
         std::cout << "        ************        " << std::endl;
         std::cout << std::endl;
     }
-
-    usleep(1000000); // 1 second delay
+    */
+    //usleep(1000000); // 1 second delay
+    usleep(100000); // 1 second delay
 }

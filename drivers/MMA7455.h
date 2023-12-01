@@ -216,7 +216,7 @@ class MMA7455
 {
     protected:
         // Instance-specific properties
-        uint8_t mma_conversionDelay;
+        uint32_t mma_conversionDelay = 1000000;
         mmaAccelDRPD_t mma_acceldrpd;
         mmaAccelSPIWire_t mma_accelspiwire;
         mmaAccelSelfTest_t mma_accelselftest;
@@ -231,7 +231,12 @@ class MMA7455
 
     public:
         uint8_t mma_i2cAddress;
+
         mmaSensorData_t mma_accelData;
+        uint8_t i2cread(void);
+        void i2cwrite(uint8_t x);
+        void writeRegister(uint8_t i2cAddress, uint8_t reg, uint8_t value);
+        uint8_t readRegister(uint8_t i2cAddress, uint8_t reg);
         void getAddr_MMA7455(uint8_t i2cAddress);
         bool begin(void);
         void setUpAccelerometer(void);
@@ -258,6 +263,8 @@ class MMA7455
         mmaAccelXda_t getAccelXda(void);
         void setAccelInterrupt(mmaAccelInterrupt_t accelinterrupt);
         mmaAccelInterrupt_t getAccelInterrupt(void);
+        int geti2cFile() {return i2cFile;}
     
     private:
+        int i2cFile = -1;
 };
