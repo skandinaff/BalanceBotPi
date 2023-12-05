@@ -2,10 +2,9 @@
 #include <termios.h>
 
 #include "../include/common.h"
-#include "../include/lockfile.h"
 #include "../include/serial_port_listener.h"
 #include "../debug/include/debugUtils.h"
-#include "../drivers/MMA7455.h"
+//#include "../drivers/MMA7455.h"
 #include "../include/acc.h"
 
 struct termios orig_termios;
@@ -18,8 +17,9 @@ std::mutex state_mutex;
 std::condition_variable state_cv;
 std::atomic<bool> exit_flag(false);
 std::atomic<bool> data_ready(false);
-
 std::string get_available_commands(const std::unordered_map<std::string, std::pair<mState, std::string>>& command_map);
+
+Accelerometer acc;
 
 std::unordered_map<std::string, std::pair<mState, std::string>> command_map = {
         {"idle", {IDLE, "Idle state"}},
@@ -28,6 +28,22 @@ std::unordered_map<std::string, std::pair<mState, std::string>> command_map = {
         {"help", {HELP, "Show this list"}},
         {"ta",   {TEST_ACC, "Test accelerometer"}}
 };
+
+void signalHandler(int signum) {
+    std::cout << "Received signal: " << signum << std::endl;
+
+    // Add your custom handling logic here
+
+    // For example, if you want to exit on SIGINT or SIGTERM
+    if (signum == SIGINT || signum == SIGTERM) {
+        std::cout << "Stopping and going to idle" << std::endl;
+        acc.stopLoop();
+        state = IDLE;
+        state_cv.notify_all();
+        //exit(signum);
+    }
+}
+
 void validateAndHandleInput(mState state, const std::vector<std::string>& cmd_tokens) {
     try {
         // Validate and handle input based on the command
@@ -99,8 +115,7 @@ void console_input_listener(mState& state,
     const char* prompt = "\033[1;32m$$\033[0m ";    
     pid_t tid = syscall(SYS_gettid); 
 
-    signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);
+    signal(SIGINT, signalHandler);
 
     INFO("Console listener Thread LWP ID: " << tid);
     while (!exit_flag) {
@@ -169,6 +184,8 @@ void state_machine(mState& state,
     bool idle_msg_printed = false;
     bool init_done = false;
 
+    signal(SIGINT, signalHandler);
+
     //while (state != EXIT) {
     while(!exit_flag){
         switch (state) {
@@ -190,7 +207,7 @@ void state_machine(mState& state,
                 INFO("In INIT state" );
                 if(!init_done){
                     // Do the init
-                    setup_acc();
+                    acc.setup();
                     init_done = true;
                     break;
                 }
@@ -216,14 +233,12 @@ void state_machine(mState& state,
                 break;
             }
             case TEST_ACC: {
-                loop_acc();
+                acc.startLoop();
                 break;
             }
             case EXIT: {
                 INFO("Entered Exit State");
-#ifndef DEBUG
-                remove_lockfile();
-#endif
+
                 {
                     std::lock_guard<std::mutex> lock(state_mutex);
                     exit_flag = true;
@@ -253,18 +268,9 @@ int main(int argc, char* argv[])
     }
 
     check_arguments(argc, argv);
-#ifndef DEBUG
-    if (lockfile_exists()) {
-        std::cerr << "Error: Another instance of the program is already running." << std::endl;
-        return 1;
-    }
-    signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);
-    signal(SIGTSTP, signal_handler);
-    atexit(remove_lockfile);
-    // Create lock file
-    create_lockfile();
-#endif
+
+    signal(SIGINT, signalHandler);
+    signal(SIGTERM, signalHandler);
     std::queue<std::string> data_queue;
     boost::asio::io_context serial_io_context;
     boost::asio::serial_port serial_port(serial_io_context);
